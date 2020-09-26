@@ -38,9 +38,9 @@ class CreateGroupChannelViewControllerB: UIViewController, UIImagePickerControll
         self.loadingIndicatorView.isHidden = true
         
         var memberNicknames: [String] = []
-        var memberCount: Int = 0
+        var memberCount = 0
         for user in self.members {
-            memberNicknames.append(user.nickname!)
+            memberNicknames.append(user.nickname ?? "")
             memberCount += 1
             if memberCount == 4 {
                 break
@@ -148,15 +148,12 @@ class CreateGroupChannelViewControllerB: UIViewController, UIImagePickerControll
     // MARK: UIImagePickerControllerDelegate
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         let mediaType = info[UIImagePickerController.InfoKey.mediaType] as! CFString
-        weak var weakSelf: CreateGroupChannelViewControllerB? = self
-        picker.dismiss(animated: true) {
-            let strongSelf = weakSelf
-            if CFStringCompare(mediaType, kUTTypeImage, []) == .compareEqualTo {
-                if let originalImage = info[UIImagePickerController.InfoKey.originalImage] as? UIImage {
-                    if let imageData = originalImage.jpegData(compressionQuality: 1.0) {
-                        strongSelf?.cropImage(imageData)
-                    }
-                }
+        picker.dismiss(animated: true) { [weak self] in
+            guard let self = self else { return }
+            if CFStringCompare(mediaType, kUTTypeImage, []) == .compareEqualTo,
+                let originalImage = info[UIImagePickerController.InfoKey.originalImage] as? UIImage,
+                let imageData = originalImage.jpegData(compressionQuality: 1.0) {
+                self.cropImage(imageData)
             }
         }
     }

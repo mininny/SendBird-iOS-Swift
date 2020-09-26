@@ -26,7 +26,6 @@ enum UtilsAction {
 }
 
 class Utils: NSObject {
-    //    static let imageLoaderQueue = DispatchQueue.init(label: "com.sendbird.imageloader", qos: DispatchQoS.background, attributes: DispatchQueue.Attributes., autoreleaseFrequency: <#T##DispatchQueue.AutoreleaseFrequency#>, target: <#T##DispatchQueue?#>)
     static func getMessageDateStringFromTimestamp(_ timestamp: Int64) -> String? {
         var messageDateString: String = ""
         let messageDateFormatter: DateFormatter = DateFormatter()
@@ -103,20 +102,18 @@ class Utils: NSObject {
     
     static func createGroupChannelNameFromMembers(channel: SBDGroupChannel) -> String {
         var memberNicknames: [String] = []
-        var count: Int = 0
-        for member in channel.members as! [SBDUser] {
+        for member in channel.members as? [SBDUser] ?? [] {
             if member.userId == SBDMain.getCurrentUser()?.userId {
                 continue
             }
             
-            memberNicknames.append(member.nickname!)
-            count += 1
-            if count == 4 {
+            memberNicknames.append(member.nickname ?? member.userId)
+            if memberNicknames.count == 4 {
                 break
             }
         }
         
-        if count == 0 {
+        if memberNicknames.isEmpty {
             return "NO MEMBERS"
         }
         else {
@@ -168,20 +165,12 @@ class Utils: NSObject {
     }
     
     static func buildTypingIndicatorLabel(channel: SBDGroupChannel) -> String {
-        if let typingMembers = channel.getTypingMembers() {
-            if typingMembers.count == 0 {
-                return ""
-            }
-            else {
-                if typingMembers.count == 1 {
-                    return String(format: "%@ is typing.", typingMembers[0].nickname!)
-                }
-                else if typingMembers.count == 2 {
-                    return String(format: "@% and %@ are typing.", typingMembers[0].nickname!, typingMembers[1].nickname!)
-                }
-                else {
-                    return "Several people are typing."
-                }
+        if let typingUsers = channel.getTypingUsers() {
+            switch typingUsers.count {
+            case 0: return ""
+            case 1: return "\(typingUsers[0].nickname ?? "One User") is typing."
+            case 2: return "\(typingUsers[0].nickname ?? "A user") and \(typingUsers[1].nickname ?? "another user") are typing."
+            default: return "several people are typing"
             }
         }
         else {

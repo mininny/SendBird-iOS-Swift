@@ -965,8 +965,9 @@ class OpenChannelChatViewController: UIViewController, UITableViewDelegate, UITa
         let thumbnailSize = SBDThumbnailSize.make(withMaxWidth: 320.0, maxHeight: 320.0)
         
         var preSendMessage: SBDFileMessage?
-        if let channel = self.channel {
-            let fileMessageParams: SBDFileMessageParams = SBDFileMessageParams.init(file: imageData)!
+        if let channel = self.channel,
+            let fileMessageParams = SBDFileMessageParams(file: imageData) {
+            
             fileMessageParams.fileName = filename
             fileMessageParams.mimeType = mimeType
             fileMessageParams.fileSize = UInt(imageData.count)
@@ -1131,7 +1132,7 @@ class OpenChannelChatViewController: UIViewController, UITableViewDelegate, UITa
     }
     
     func didLongClickFileMessage(_ message: SBDFileMessage) {
-        var alert : UIAlertController?
+        var alert: UIAlertController
         var deleteMessageActionTitle = ""
         var saveActionTitle = ""
         
@@ -1159,9 +1160,8 @@ class OpenChannelChatViewController: UIViewController, UITableViewDelegate, UITa
         guard let sender = message.sender else { return }
         guard let channel = self.channel else { return }
         
-        var actionDelete: UIAlertAction?
         if sender.userId == currentUser.userId || channel.isOperator(with: currentUser) {
-            actionDelete = UIAlertAction(title: deleteMessageActionTitle, style: .destructive, handler: { (action) in
+            let actionDelete = UIAlertAction(title: deleteMessageActionTitle, style: .destructive, handler: { (action) in
                 channel.delete(message, completionHandler: { (error) in
                     if error != nil {
                         let alert = UIAlertController(title: "Error", message: error!.domain, preferredStyle: .alert)
@@ -1179,9 +1179,8 @@ class OpenChannelChatViewController: UIViewController, UITableViewDelegate, UITa
                     }
                 })
             })
-        }
-        if let action = actionDelete {
-            alert!.addAction(action)
+            
+            alert.addAction(actionDelete)
         }
         
         let actionSaveFile = UIAlertAction(title: saveActionTitle, style: .default) { (action) in
@@ -1192,18 +1191,18 @@ class OpenChannelChatViewController: UIViewController, UITableViewDelegate, UITa
                 DownloadManager.download(url: url, filename: message.name, mimeType: message.type, addToMediaLibrary: false)
             }
         }
-        alert!.addAction(actionSaveFile)
+        alert.addAction(actionSaveFile)
         
         let actionCancel = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
-        alert!.addAction(actionCancel)
+        alert.addAction(actionCancel)
         
         DispatchQueue.main.async {
-            self.present(alert!, animated: true, completion: nil)
+            self.present(alert, animated: true, completion: nil)
         }
     }
 
     func didLongClickMessage(_ message: SBDBaseMessage) {
-        var alert : UIAlertController?
+        var alert: UIAlertController
         var sender: SBDSender?
         var messageText: String?
         
@@ -1222,9 +1221,8 @@ class OpenChannelChatViewController: UIViewController, UITableViewDelegate, UITa
         guard let currentUser = SBDMain.getCurrentUser() else { return }
         guard messageText != nil else { return }
         
-        var actionDelete: UIAlertAction?
-        if channel.isOperator(with: currentUser) || sender?.userId == currentUser.userId{
-            actionDelete = UIAlertAction(title: "Delete message", style: .destructive, handler: { (action) in
+        if channel.isOperator(with: currentUser) || sender?.userId == currentUser.userId {
+            let actionDelete = UIAlertAction(title: "Delete message", style: .destructive, handler: { (action) in
                 channel.delete(message, completionHandler: { (error) in
                     if error != nil {
                         let alert = UIAlertController(title: "Error", message: error!.domain, preferredStyle: .alert)
@@ -1242,8 +1240,7 @@ class OpenChannelChatViewController: UIViewController, UITableViewDelegate, UITa
                     }
                 })
             })
-            
-            
+            alert.addAction(actionDelete)
         }
         
         let actionCopy = UIAlertAction(title: "Copy message", style: .default) { (action) in
@@ -1252,17 +1249,13 @@ class OpenChannelChatViewController: UIViewController, UITableViewDelegate, UITa
             
             self.showToast("Copied")
         }
-        alert?.addAction(actionCopy)
+        alert.addAction(actionCopy)
         
         let actionCancel = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
-        alert?.addAction(actionCancel)
-        
-        if let action = actionDelete {
-            alert?.addAction(action)
-        }
+        alert.addAction(actionCancel)
         
         DispatchQueue.main.async {
-            self.present(alert!, animated: true, completion: nil)
+            self.present(alert, animated: true, completion: nil)
         }
     }
     
@@ -1335,13 +1328,15 @@ class OpenChannelChatViewController: UIViewController, UITableViewDelegate, UITa
         
         if user.userId == currentUser.userId, sender.channelUrl == channel.channelUrl {
             let alert = UIAlertController(title: "You are muted.", message: "You are muted. You won't be able to send messages.", preferredStyle: .alert)
-            let actionConfirm = UIAlertAction(title: "Okay", style: .cancel) { (action) in
+            let actionConfirm = UIAlertAction(title: "Okay", style: .cancel) { [weak self] (action) in
+                guard let self = self else { return }
                 self.sendUserMessageButton.isEnabled = false
                 self.inputMessageTextField.isEnabled = false
                 self.inputMessageTextField.placeholder = "You are muted"
                 self.sendFileMessageButton.isEnabled = false
             }
             alert.addAction(actionConfirm)
+            
             DispatchQueue.main.async {
                 self.present(alert, animated: true, completion: nil)
             }
@@ -1564,8 +1559,7 @@ class OpenChannelChatViewController: UIViewController, UITableViewDelegate, UITa
                 }, completionHandler: { (fileMessage, error) in
                     guard let message = fileMessage else { return }
                     guard let fileMessageRequestId = fileMessage?.requestId else { return }
-                    let preSendMessage = self.preSendMessages[fileMessageRequestId] as? SBDFileMessage
-                    self.preSendMessages.removeValue(forKey: fileMessageRequestId)
+                    let preSendMessage = self.preSendMessages.removeValue(forKey: fileMessageRequestId)
                     
                     DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(150), execute: {
                         if error != nil {

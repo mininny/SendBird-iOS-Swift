@@ -31,13 +31,13 @@ class UserProfileViewController: UIViewController, NotificationDelegate {
         let query = SBDMain.createApplicationUserListQuery()
         query?.userIdsFilter = [user.userId]
         query?.loadNextPage(completionHandler: { (users, error) in
-            if error != nil {
-                Utils.showAlertController(error: error!, viewController: self)
+            if let error = error {
+                Utils.showAlertController(error: error, viewController: self)
                 return
             }
             
-            if (users?.count)! > 0 {
-                self.refreshUserInfo(users![0])
+            for user in users ?? [] {
+                self.refreshUserInfo(user)
             }
         })
     }
@@ -60,7 +60,7 @@ class UserProfileViewController: UIViewController, NotificationDelegate {
             self.onlineStateImageView.image = UIImage(named: "img_offline")
             self.onlineStateLabel.text = "Offline"
             if user.lastSeenAt > 0 {
-                self.lastUpdatedLabel.text = String(format: "Last Updated %@", Utils.getDateStringForDateSeperatorFromTimestamp(user.lastSeenAt))
+                self.lastUpdatedLabel.text = "Last Updated \(Utils.getDateStringForDateSeperatorFromTimestamp(user.lastSeenAt))"
                 self.lastUpdatedLabel.isHidden = false
             }
             else {

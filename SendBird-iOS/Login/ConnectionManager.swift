@@ -39,9 +39,11 @@ class ConnectionManager: NSObject, SBDConnectionDelegate {
             if stopConnectionRetry {
                 return
             }
+            
             if error != nil {
                 return self.showAlert()
             }
+            
             let alert = UIAlertController(title: "Login Success", message: nil, preferredStyle: .actionSheet)
             alert.addAction(UIAlertAction(title: "Okay", style: .cancel, handler: nil))
             let topVC = UIApplication.shared.keyWindow?.rootViewController
@@ -77,18 +79,15 @@ class ConnectionManager: NSObject, SBDConnectionDelegate {
     
     static public func login(completionHandler: ((_ user: SBDUser?, _ error: NSError?) -> Void)?) {
         let userDefault = UserDefaults.standard
-        let userId: String? = userDefault.value(forKey: "sendbird_user_id") as? String
-        let userNickname: String? = userDefault.value(forKey: "sendbird_user_nickname") as? String
         
-        guard let theUserId: String = userId, let theNickname: String = userNickname else {
-            if let handler: ((_ :SBDUser?, _ :NSError?) -> ()) = completionHandler {
+        guard let userId = userDefault.value(forKey: "sendbird_user_id") as? String,
+            let userNickname = userDefault.value(forKey: "sendbird_user_nickname") as? String else {
                 let error: NSError = NSError(domain: ErrorDomainConnection, code: -1, userInfo: [NSLocalizedDescriptionKey:"User id or user nickname is nil.",NSLocalizedFailureReasonErrorKey:"Saved user data does not exist."])
-                handler(nil, error)
-            }
-            return
+                completionHandler?(nil, error)
+                return
         }
         
-        self.login(userId: theUserId, nickname: theNickname, completionHandler: completionHandler)
+        self.login(userId: userId, nickname: userNickname, completionHandler: completionHandler)
     }
     
     static public func login(userId: String, nickname: String, completionHandler: ((_ user: SBDUser?, _ error: NSError?) -> Void)?) {
@@ -99,23 +98,17 @@ class ConnectionManager: NSObject, SBDConnectionDelegate {
         SBDMain.connect(withUserId: userId) { (user, error) in
             let userDefault = UserDefaults.standard
             
-            if let theError: NSError = error {
-                if let handler = completionHandler {
-                    var userInfo: [String: Any] = Dictionary()
-                    if let reason: String = theError.localizedFailureReason {
-                        userInfo[NSLocalizedFailureReasonErrorKey] = reason
-                    }
-                    userInfo[NSLocalizedDescriptionKey] = theError.localizedDescription
-                    userInfo[NSUnderlyingErrorKey] = theError
-                    let connectionError: NSError = NSError.init(domain: ErrorDomainConnection, code: theError.code, userInfo: userInfo)
-                    handler(nil, connectionError)
-                }
-                return
+            if let error = error {
+                let userInfo = [NSLocalizedFailureReasonErrorKey: error.localizedFailureReason as Any,
+                                NSLocalizedDescriptionKey: error.localizedDescription,
+                                NSUnderlyingErrorKey: error]
+                let connectionError = NSError(domain: ErrorDomainConnection, code: error.code, userInfo: userInfo)
+                completionHandler?(nil, connectionError)
             }
             
             if let pushToken: Data = SBDMain.getPendingPushToken() {
                 SBDMain.registerDevicePushToken(pushToken, unique: true, completionHandler: { (status, error) in
-                    guard let _: SBDError = error else {
+                    guard error == nil else {
                         print("APNS registration failed.")
                         return
                     }
@@ -132,6 +125,7 @@ class ConnectionManager: NSObject, SBDConnectionDelegate {
             self.broadcastConnection(isReconnection: false)
             
             SBDMain.getDoNotDisturb { (isDoNotDisturbOn, startHour, startMin, endHour, endMin, timezone, error) in
+                
                 UserDefaults.standard.set(startHour, forKey: "sendbird_dnd_start_hour")
                 UserDefaults.standard.set(startMin, forKey: "sendbird_dnd_start_min")
                 UserDefaults.standard.set(endHour, forKey: "sendbird_dnd_end_hour")
@@ -172,9 +166,7 @@ class ConnectionManager: NSObject, SBDConnectionDelegate {
             
             UIApplication.shared.applicationIconBadgeNumber = 0
             
-            if let handler: () -> Void = completionHandler {
-                handler()
-            }
+            completionHandler?()
         }
     }
     
@@ -195,14 +187,14 @@ class ConnectionManager: NSObject, SBDConnectionDelegate {
     
     private func broadcastConnection(isReconnection: Bool) {
         let enumerator: NSEnumerator? = self.observers.objectEnumerator()
-        while let observer = enumerator?.nextObject() as! ConnectionManagerDelegate? {
+        while let observer = enumerator?.nextObject() as? ConnectionManagerDelegate {
             observer.didConnect(isReconnection: isReconnection)
         }
     }
     
     private func broadcastDisconnection() {
         let enumerator: NSEnumerator? = self.observers.objectEnumerator()
-        while let observer = enumerator?.nextObject() as! ConnectionManagerDelegate? {
+        while let observer = enumerator?.nextObject() as? ConnectionManagerDelegate {
             observer.didDisconnect()
         }
     }

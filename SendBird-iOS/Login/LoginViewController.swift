@@ -116,12 +116,12 @@ class LoginViewController: UIViewController, UITextFieldDelegate, NotificationDe
         self.scrollViewBottom.constant = scrollValue
         
         let animator = UIViewPropertyAnimator(duration: 0.3, curve: .easeOut) {
-            self.userIdLabelTop.constant = !self.keyboardShown ? 23 : 56
+            self.userIdLabelTop.constant = self.keyboardShown ? 56 : 23
             self.view.layoutIfNeeded()
             self.versionInfoLabel.alpha = self.keyboardShown ? 1 : 0
         }
         animator.startAnimation()
-        logoInvisble = !logoInvisble
+        logoInvisble.toggle()
     }
     
     
@@ -186,10 +186,10 @@ class LoginViewController: UIViewController, UITextFieldDelegate, NotificationDe
     func openChat(_ channelUrl: String) {
         self.navigationController?.popViewController(animated: false)
         let tabBarVC = MainTabBarController.init(nibName: "MainTabBarController", bundle: nil)
+        
         self.present(tabBarVC, animated: false) {
-            let vc = UIViewController.currentViewController()
-            if vc is GroupChannelsViewController {
-                (vc as! GroupChannelsViewController).openChat(channelUrl)
+            if let vc = UIViewController.currentViewController() as? GroupChannelsViewController {
+                vc.openChat(channelUrl)
             }
         }
     }

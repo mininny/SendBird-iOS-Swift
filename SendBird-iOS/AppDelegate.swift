@@ -164,13 +164,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         guard let groupChannel = sender as? SBDGroupChannel else { return }
         
         let pushOption = groupChannel.myPushTriggerOption
-        
-        switch pushOption {
-        case .all, .default, .mentionOnly:
-            break
-        case .off:
-            return
-        }
+        if pushOption == .off { return }
         
         // Do Not Disturb - Need to implement as a function
         var startHour = 0
@@ -212,9 +206,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         }
         
         if startHour != -1 && startMin != -1 && endHour != -1 && endMin != -1 && isDoNotDisturbOn {
-            let date = Date()
-            let calendar = Calendar.current
-            let components = calendar.dateComponents([.hour, .minute], from: date)
+            let components = Calendar.current.dateComponents([.hour, .minute], from: Date())
             let hour = components.hour
             let minute = components.minute
             
@@ -233,35 +225,32 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         var title = ""
         var body = ""
         var type = ""
-        var customType = ""
-        if message is SBDUserMessage {
-            let userMessage = message as! SBDUserMessage
-            let sender = userMessage.sender
-            
+        var customType: String?
+        if let userMessage = message as? SBDUserMessage,
+            let sender = userMessage.sender {
+            let senderName = sender.nickname ?? sender.userId
             type = "MESG"
-            body = String(format: "%@: %@", (sender?.nickname)!, userMessage.message)
-            customType = userMessage.customType!
+            body = "\(senderName): \(userMessage.message)"
+            customType = userMessage.customType
         }
-        else if message is SBDFileMessage {
-            let fileMessage = message as! SBDFileMessage
-            let sender = fileMessage.sender
+        else if let fileMessage = message as? SBDFileMessage,
+            let sender = fileMessage.sender {
+            let senderName = sender.nickname ?? sender.userId
             
             if fileMessage.type.hasPrefix("image") {
-                body = String(format: "%@: (Image)", (sender?.nickname)!)
+                body = "\(senderName): (Image)"
             }
             else if fileMessage.type.hasPrefix("video") {
-                body = String(format: "%@: (Video)", (sender?.nickname)!)
+                body = "\(senderName): (Video)"
             }
             else if fileMessage.type.hasPrefix("audio") {
-                body = String(format: "%@: (Audio)", (sender?.nickname)!)
+                body = "\(senderName): (Audio)"
             }
             else {
-                body = String(format: "%@: (File)", sender!.nickname!)
+                body = "\(senderName): (File)"
             }
         }
-        else if message is SBDAdminMessage {
-            let adminMessage = message as! SBDAdminMessage
-            
+        else if let adminMessage = message as? SBDAdminMessage {
             title = ""
             body = adminMessage.message
         }
@@ -274,7 +263,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         content.userInfo = [
             "sendbird": [
                 "type": type,
-                "custom_type": customType,
+                "custom_type": customType ?? "",
                 "channel": [
                     "channel_url": sender.channelUrl
                 ],
@@ -344,44 +333,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     
     // Swift version only.
     private func compareVersions(version1: String, version2: String) -> Int {
-        var ret: Int = 0
+        guard let version1 = Double(version1),
+            let version2 = Double(version2) else { return -1 }
         
-        var v1:[Int] = version1.split(separator: ".").map { (substring) -> Int in
-            return Int(substring)!
+        if version1 == version2 {
+            return 0
+        } else if version1 > version2 {
+            return 1
+        } else {
+            return -1
         }
-        var v2 = version2.split(separator: ".").map { (substring) -> Int in
-            return Int(substring)!
-        }
-        
-        let cntv1 = v1.count
-        let cntv2 = v2.count
-        let mincnt = cntv1 < cntv2 ? cntv1 : cntv2
-        
-        for i in 0..<mincnt {
-            if v1[i] == v2[i] {
-                ret = 0
-                continue
-            }
-            else if v1[i] > v2[i] {
-                ret = 1
-            }
-            else {
-                ret = -1
-            }
-            
-            break
-        }
-        
-        if ret == 0 {
-            if cntv1 > cntv2 {
-                ret = 1
-            }
-            else if cntv1 < cntv2 {
-                ret = -1
-            }
-        }
-        
-        return ret
     }
 }
 

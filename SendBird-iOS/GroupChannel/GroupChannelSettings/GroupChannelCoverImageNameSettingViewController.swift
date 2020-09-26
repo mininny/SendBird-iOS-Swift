@@ -50,21 +50,18 @@ class GroupChannelCoverImageNameSettingViewController: UIViewController, UIImage
         self.profileImageView.addGestureRecognizer(tapCoverImageGesture)
 
         var currentMembers: [SBDMember] = []
-        var count = 0
         for member in self.channel?.members as? [SBDMember] ?? [] {
             if member.userId == SBDMain.getCurrentUser()?.userId {
                 continue
             }
+            
             currentMembers.append(member)
-            count += 1
-            if count == 4 {
-                break
-            }
+            if currentMembers.count == 4 { break }
         }
-        if let coverUrl = self.channel?.coverUrl {
-            if coverUrl.count > 0 && !coverUrl.hasPrefix("https://sendbird.com/main/img/cover/") {
-                self.profileImageView.setImage(withCoverUrl: coverUrl)
-            }
+        
+        if let coverUrl = self.channel?.coverUrl,
+            coverUrl.count > 0 && !coverUrl.hasPrefix("https://sendbird.com/main/img/cover/") {
+            self.profileImageView.setImage(withCoverUrl: coverUrl)
         } else {
             self.profileImageView.users = currentMembers
         }
@@ -95,15 +92,12 @@ class GroupChannelCoverImageNameSettingViewController: UIViewController, UIImage
     // MARK: UIImagePickerControllerDelegate
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         let mediaType = info[UIImagePickerController.InfoKey.mediaType] as! CFString
-        weak var weakSelf: GroupChannelCoverImageNameSettingViewController? = self
-        picker.dismiss(animated: true) {
-            let strongSelf = weakSelf
-            if CFStringCompare(mediaType, kUTTypeImage, []) == .compareEqualTo {
-                if let originalImage = info[UIImagePickerController.InfoKey.originalImage] as? UIImage {
-                    if let imageData = originalImage.jpegData(compressionQuality: 1.0) {
-                        strongSelf?.cropImage(imageData)
-                    }
-                }
+        picker.dismiss(animated: true) { [weak self] in
+            guard let self = self else { return }
+            if CFStringCompare(mediaType, kUTTypeImage, []) == .compareEqualTo,
+                let originalImage = info[UIImagePickerController.InfoKey.originalImage] as? UIImage,
+                let imageData = originalImage.jpegData(compressionQuality: 1.0) {
+                self.cropImage(imageData)
             }
         }
     }
@@ -187,7 +181,9 @@ class GroupChannelCoverImageNameSettingViewController: UIViewController, UIImage
         params.name = self.channelNameTextField.text
         
         if let channel = self.channel {
-            channel.update(with: params) { (channel, error) in
+            channel.update(with: params) { [weak self] (channel, error) in
+                guard let self = self else { return }
+                
                 self.loadingIndicatorView.isHidden = true
                 self.loadingIndicatorView.stopAnimating()
                 

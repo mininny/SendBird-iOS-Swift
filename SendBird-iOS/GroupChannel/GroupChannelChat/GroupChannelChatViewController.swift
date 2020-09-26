@@ -309,18 +309,16 @@ class GroupChannelChatViewController: UIViewController, UITableViewDelegate, UIT
     
     // MARK: - Keyboard
     func determineScrollLock() {
-        if self.messages.count > 0 {
-            if let indexPaths = self.messageTableView.indexPathsForVisibleRows {
-                if let lastVisibleCellIndexPath = indexPaths.last {
-                    let lastVisibleRow = lastVisibleCellIndexPath.row
-                    if lastVisibleRow < self.messages.count - 1 {
-                        self.scrollLock = false
-                    }
-                    else {
-                        self.scrollLock = true
-                    }
-                }
-            }
+        guard self.messages.count > 0 else { return }
+        guard let indexPaths = self.messageTableView.indexPathsForVisibleRows else { return }
+        guard let lastVisibleCellIndexPath = indexPaths.last else { return }
+            
+        let lastVisibleRow = lastVisibleCellIndexPath.row
+        if lastVisibleRow < self.messages.count - 1 {
+            self.scrollLock = false
+        }
+        else {
+            self.scrollLock = true
         }
     }
     
@@ -1164,10 +1162,10 @@ class GroupChannelChatViewController: UIViewController, UITableViewDelegate, UIT
     
     func channelDidUpdateTypingStatus(_ sender: SBDGroupChannel) {
         let typingIndicatorText = Utils.buildTypingIndicatorLabel(channel: sender)
-        if self.typingIndicatorTimer != nil {
-            self.typingIndicatorTimer!.invalidate()
-            self.typingIndicatorTimer = nil
-        }
+            
+        self.typingIndicatorTimer?.invalidate()
+        self.typingIndicatorTimer = nil
+        
         self.typingIndicatorTimer = Timer.scheduledTimer(timeInterval: 10, target: self, selector: #selector(GroupChannelChatViewController.hideTypingIndicator(_:)), userInfo: nil, repeats: false)
         
         if typingIndicatorText.count > 0 {

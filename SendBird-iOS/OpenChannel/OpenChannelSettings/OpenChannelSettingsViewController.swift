@@ -147,7 +147,7 @@ class OpenChannelSettingsViewController: UIViewController, UITableViewDelegate, 
                 if let participantCell = tableView.dequeueReusableCell(withIdentifier: "OpenChannelSettingsMenuTableViewCell", for: indexPath) as? OpenChannelSettingsMenuTableViewCell {
                     participantCell.settingMenuLabel.text = "Participants"
                     participantCell.settingMenuIconImageView.image = UIImage(named: "img_icon_participant")
-                    participantCell.countLabel.text = String(format: "%ld", channel.participantCount)
+                    participantCell.countLabel.text = "\(channel.participantCount)"
                     
                     cell = participantCell
                 }

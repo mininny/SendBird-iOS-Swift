@@ -17,9 +17,7 @@ class DownloadManager: NSObject, URLSessionDelegate, URLSessionDataDelegate {
     static let shared = DownloadManager()
     var session: URLSession?
     
-    private override init() {
-        
-    }
+    private override init() { }
     
     private func backgroundSession() -> URLSession {
         if DownloadManager.shared.session == nil {

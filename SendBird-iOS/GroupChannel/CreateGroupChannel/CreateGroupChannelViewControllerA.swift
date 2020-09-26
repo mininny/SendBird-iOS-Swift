@@ -143,12 +143,7 @@ class CreateGroupChannelViewControllerA: UIViewController, UITableViewDelegate, 
                     self.users.removeAll()
                 }
                 
-                for user in users! {
-                    if user.userId == SBDMain.getCurrentUser()!.userId {
-                        continue
-                    }
-                    self.users.append(user)
-                }
+                self.users.append(contentsOf: users?.filter({ $0.userId != SBDMain.getCurrentUser()?.userId }) ?? [])
                 
                 self.tableView.reloadData()
                 self.refreshControl?.endRefreshing()
@@ -174,13 +169,7 @@ class CreateGroupChannelViewControllerA: UIViewController, UITableViewDelegate, 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         self.selectedUsers.remove(at: indexPath.row)
         self.okButtonItem?.title = "OK(\(Int(self.selectedUsers.count)))"
-        
-        if self.selectedUsers.count == 0 {
-            self.okButtonItem?.isEnabled = false
-        }
-        else {
-            self.okButtonItem?.isEnabled = true
-        }
+        self.okButtonItem?.isEnabled = (self.selectedUsers.count != 0)
         
         DispatchQueue.main.async {
             if self.selectedUsers.count == 0 {
@@ -286,12 +275,7 @@ class CreateGroupChannelViewControllerA: UIViewController, UITableViewDelegate, 
                 
                 DispatchQueue.main.async {
                     self.users.removeAll()
-                    for user in users ?? [] {
-                        if user.userId == SBDMain.getCurrentUser()!.userId {
-                            continue
-                        }
-                        self.users.append(user)
-                    }
+                    self.users.append(contentsOf: users?.filter({ $0.userId != SBDMain.getCurrentUser()?.userId }) ?? [])
                     
                     self.tableView.reloadData()
                     self.refreshControl?.endRefreshing()
